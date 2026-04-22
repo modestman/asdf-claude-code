@@ -93,13 +93,11 @@ else
     platform="${os}-${arch}"
 fi
 
-# Verify the requested version exists
-if ! download_file "$DOWNLOAD_BASE_URL/$VERSION" >/dev/null; then
-    echo "Version $VERSION not found at $DOWNLOAD_BASE_URL/$VERSION" >&2
+# Verify the requested version exists by fetching its manifest
+if ! manifest_json=$(download_file "$DOWNLOAD_BASE_URL/$VERSION/manifest.json") || [ -z "$manifest_json" ]; then
+    echo "Version $VERSION not found at $DOWNLOAD_BASE_URL/$VERSION/manifest.json" >&2
     exit 1
 fi
-
-manifest_json=$(download_file "$DOWNLOAD_BASE_URL/$VERSION/manifest.json")
 
 if [ "$HAS_JQ" = true ]; then
     checksum=$(echo "$manifest_json" | jq -r ".platforms[\"$platform\"].checksum // empty")
