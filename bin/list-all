@@ -22,6 +22,15 @@ fetch() {
     fi
 }
 
+check_url() {
+    local url="$1"
+    if [ "$DOWNLOADER" = "curl" ]; then
+        curl -fsSL -o /dev/null "$url" 2>/dev/null
+    else
+        wget -q -O /dev/null "$url"
+    fi
+}
+
 stable=$(fetch "$DOWNLOAD_BASE_URL/stable" | tr -d '[:space:]')
 latest=$(fetch "$DOWNLOAD_BASE_URL/latest" | tr -d '[:space:]')
 
@@ -30,10 +39,17 @@ if [ -z "$stable" ] && [ -z "$latest" ]; then
     exit 1
 fi
 
-if [ "$stable" = "$latest" ] || [ -z "$latest" ]; then
-    echo "$stable"
-elif [ -z "$stable" ]; then
-    echo "$latest"
-else
-    echo "$stable $latest"
+versions=""
+[ -n "$stable" ] && versions="$stable"
+[ -n "$latest" ] && versions="$versions
+$latest"
+
+if [ -n "$ASDF_INSTALL_VERSION" ]; then
+    if check_url "$DOWNLOAD_BASE_URL/$ASDF_INSTALL_VERSION/manifest.json"; then
+        versions="$versions
+$ASDF_INSTALL_VERSION"
+    fi
 fi
+
+echo "$versions" | sed '/^$/d' | sort -V -u | tr '\n' ' ' | sed 's/ $//'
+echo
