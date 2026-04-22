@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+DOWNLOAD_BASE_URL="https://downloads.claude.ai/claude-code-releases"
+
+if command -v curl >/dev/null 2>&1; then
+    DOWNLOADER="curl"
+elif command -v wget >/dev/null 2>&1; then
+    DOWNLOADER="wget"
+else
+    echo "Either curl or wget is required but neither is installed" >&2
+    exit 1
+fi
+
+fetch() {
+    local url="$1"
+    if [ "$DOWNLOADER" = "curl" ]; then
+        curl -fsSL "$url"
+    else
+        wget -q -O - "$url"
+    fi
+}
+
+stable=$(fetch "$DOWNLOAD_BASE_URL/stable" | tr -d '[:space:]')
+latest=$(fetch "$DOWNLOAD_BASE_URL/latest" | tr -d '[:space:]')
+
+if [ -z "$stable" ] && [ -z "$latest" ]; then
+    echo "Failed to fetch versions from $DOWNLOAD_BASE_URL" >&2
+    exit 1
+fi
+
+if [ "$stable" = "$latest" ] || [ -z "$latest" ]; then
+    echo "$stable"
+elif [ -z "$stable" ]; then
+    echo "$latest"
+else
+    echo "$stable $latest"
+fi
